@@ -9,7 +9,12 @@ interface AiChatbotProps {
 
 const AiChatbot: React.FC<AiChatbotProps> = ({ onOpenSettings }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: 'model',
+      text: "Hello! I am the GeminiEX AI Trading Assistant. How can I help you today? You can ask me about market trends, specific assets, or general trading knowledge.",
+    }
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyError, setApiKeyError] = useState(false);
@@ -36,7 +41,8 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ onOpenSettings }) => {
         if (e instanceof Error && (e.message === "GEMINI_API_KEY_MISSING" || e.message === "GEMINI_API_KEY_INVALID")) {
             setApiKeyError(true);
         } else {
-            const errorMessage: ChatMessage = { role: 'model', text: "Sorry, I encountered an error. Please try again." };
+            const errorText = e instanceof Error ? e.message : "Sorry, an unknown error occurred. Please try again.";
+            const errorMessage: ChatMessage = { role: 'model', text: errorText, isError: true };
             setMessages(prev => [...prev, errorMessage]);
         }
     } finally {
@@ -68,15 +74,15 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ onOpenSettings }) => {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 && (
-                <div className="text-center text-gray-500 dark:text-gray-400 h-full flex flex-col justify-center">
-                    <p className="text-lg">Welcome to the GeminiEX AI Assistant!</p>
-                    <p className="text-sm">Ask me about crypto, trading strategies, or market news.</p>
-                </div>
-            )}
             {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-3 rounded-xl whitespace-pre-wrap ${msg.role === 'user' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-xl whitespace-pre-wrap ${
+                        msg.role === 'user' 
+                            ? 'bg-green-600 text-white' 
+                            : msg.isError
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    }`}>
                         {msg.text}
                     </div>
                 </div>

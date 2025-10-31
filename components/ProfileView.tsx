@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Portfolio, MarketInfo, Transaction, OrderType, TransactionType, StakingPortfolio, TradeTransaction, DepositWithdrawTransaction, StakingTransaction } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -88,8 +87,9 @@ const AssetDistribution: React.FC<{ portfolio: Portfolio; markets: MarketInfo[] 
             }
             return { name: symbol.toUpperCase(), value };
         })
-        .filter(item => item && item.value > 0.01)
-        .sort((a, b) => (b?.value ?? 0) - (a?.value ?? 0));
+        .filter((item): item is { name: string; value: number } => item !== null && item.value > 0.01)
+        // FIX: Explicitly sort by numeric value to ensure correct type inference.
+        .sort((a, b) => b.value - a.value);
 
     if (!data || data.length === 0) {
         return <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex items-center justify-center text-gray-500">No assets to display.</div>;
