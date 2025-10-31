@@ -1,5 +1,5 @@
 {
-  "name": "Gemini Crypto Exchange",
+  "name": "SomTrade Crypto Exchange",
   "description": "A sophisticated, centralized crypto exchange interface built with React and Tailwind CSS. It features a real-time trading view with mock data, including a price chart, order book, and trade history. It also integrates Gemini API to provide AI-powered insights on selected cryptocurrencies.",
   "requestFramePermissions": []
 }

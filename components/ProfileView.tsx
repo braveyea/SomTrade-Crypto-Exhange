@@ -75,21 +75,22 @@ const PortfolioHistoryChart: React.FC<{totalValue: number}> = ({ totalValue }) =
 
 
 const AssetDistribution: React.FC<{ portfolio: Portfolio; markets: MarketInfo[] }> = ({ portfolio, markets }) => {
-    const data = Object.entries(portfolio)
+    const data = useMemo(() => Object.entries(portfolio)
         .map(([symbol, amount]) => {
-            if (amount === 0) return null;
+            // Fix: Explicitly cast `amount` to a number before multiplication to prevent type errors, as data from localStorage may not be strictly typed.
+            const numericAmount = Number(amount);
+            if (numericAmount === 0) return null;
             let value;
             if (symbol.toLowerCase() === 'usdt') {
-                value = amount;
+                value = numericAmount;
             } else {
                 const market = markets.find(m => m.symbol.toLowerCase() === symbol.toLowerCase());
-                value = market ? amount * market.current_price : 0;
+                value = market ? numericAmount * market.current_price : 0;
             }
             return { name: symbol.toUpperCase(), value };
         })
         .filter((item): item is { name: string; value: number } => item !== null && item.value > 0.01)
-        // FIX: Explicitly sort by numeric value to ensure correct type inference.
-        .sort((a, b) => b.value - a.value);
+        .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)), [portfolio, markets]);
 
     if (!data || data.length === 0) {
         return <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex items-center justify-center text-gray-500">No assets to display.</div>;

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { getAiChatbotResponse } from '../services/geminiService';
 import { ChatMessage } from '../types';
@@ -12,7 +11,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ onOpenSettings }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'model',
-      text: "Hello! I am the GeminiEX AI Trading Assistant. How can I help you today? You can ask me about market trends, specific assets, or general trading knowledge.",
+      text: "Hello! I am the SomTrade AI Trading Assistant. How can I help you today? You can ask me about market trends, specific assets, or general trading knowledge.",
     }
   ]);
   const [input, setInput] = useState('');

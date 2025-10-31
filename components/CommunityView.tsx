@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { MOCK_LEADERBOARD } from '../constants';
 
@@ -24,7 +23,7 @@ const CommunityView: React.FC = () => {
     <div className="max-w-screen-2xl mx-auto space-y-6">
         <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Community Leaderboard</h1>
-            <p className="text-md text-gray-500 dark:text-gray-400 mt-2">See how you stack up against the top traders on GeminiEX.</p>
+            <p className="text-md text-gray-500 dark:text-gray-400 mt-2">See how you stack up against the top traders on SomTrade.</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">

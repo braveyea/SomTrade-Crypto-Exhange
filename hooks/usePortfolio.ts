@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Portfolio, 
@@ -11,9 +10,9 @@ import {
   StakingTransaction 
 } from '../types';
 
-const PORTFOLIO_STORAGE_KEY = 'gemini-ex-portfolio';
-const STAKED_PORTFOLIO_STORAGE_KEY = 'gemini-ex-staked-portfolio';
-const TRANSACTION_HISTORY_STORAGE_KEY = 'gemini-ex-transaction-history';
+const PORTFOLIO_STORAGE_KEY = 'somtrade-portfolio';
+const STAKED_PORTFOLIO_STORAGE_KEY = 'somtrade-staked-portfolio';
+const TRANSACTION_HISTORY_STORAGE_KEY = 'somtrade-transaction-history';
 
 const initialPortfolio: Portfolio = {
   usdt: 10000.00,

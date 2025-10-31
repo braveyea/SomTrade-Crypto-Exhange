@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView } from '../App';
 
@@ -47,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, onLogout, totalPortfol
               <svg className="h-8 w-auto text-green-500 dark:text-green-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v4h-2v-4zm0 6h2v2h-2v-2z" />
               </svg>
-              <span className="text-xl font-bold text-gray-900 dark:text-white ml-2">GeminiEX</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white ml-2">SomTrade</span>
             </div>
             <div className="hidden sm:block sm:ml-6">
               <div className="flex space-x-4">

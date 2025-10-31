@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface SettingsModalProps {
@@ -18,7 +17,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
 
   useEffect(() => {
     if (isOpen) {
-      const savedKey = localStorage.getItem('gemini-api-key') || '';
+      const savedKey = localStorage.getItem('somtrade-api-key') || '';
       setApiKey(savedKey);
     }
   }, [isOpen]);
@@ -33,7 +32,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
   };
 
   const handleSaveAndClose = () => {
-    localStorage.setItem('gemini-api-key', apiKey);
+    localStorage.setItem('somtrade-api-key', apiKey);
     onClose();
   };
 

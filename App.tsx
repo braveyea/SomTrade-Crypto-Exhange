@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import TradingView from './components/TradingView';
@@ -10,6 +9,7 @@ import EarnView from './components/EarnView';
 import CommunityView from './components/CommunityView';
 import SecurityView from './components/SecurityView';
 import AiChatbot from './components/AiChatbot';
+import LandingPage from './components/LandingPage';
 import { DEFAULT_COIN_ID, INITIAL_COIN_IDS } from './constants';
 import { MarketInfo } from './types';
 import { fetchMarkets } from './services/coingeckoService';
@@ -29,6 +29,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('userToken'));
   const [activeView, setActiveView] = useState<AppView>('trade');
+
+  const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
+  const [initialAuthView, setInitialAuthView] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -63,18 +66,25 @@ const App: React.FC = () => {
   const handleLoginSuccess = () => {
     localStorage.setItem('userToken', 'mock-token-for-demo');
     setIsAuthenticated(true);
+    setPublicView('landing');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('userToken');
     // Clear all persisted data on logout for a clean slate
     Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('gemini-ex-')) {
+        if (key.startsWith('somtrade-')) {
             localStorage.removeItem(key);
         }
     });
     setIsAuthenticated(false);
     setActiveView('trade');
+    setPublicView('landing');
+  };
+  
+  const showAuth = (view: 'login' | 'signup') => {
+    setInitialAuthView(view);
+    setPublicView('auth');
   };
 
   const handleNavigateToTrade = (coinId: string) => {
@@ -84,7 +94,7 @@ const App: React.FC = () => {
 
   const totalPortfolioValue = useMemo(() => {
     if (!markets.length) {
-        return Object.values(portfolio).reduce((acc: number, val: number) => acc + val, 0);
+        return 0;
     }
 
     const liquidValue = Object.keys(portfolio).reduce((acc, assetSymbol) => {
@@ -113,7 +123,11 @@ const App: React.FC = () => {
   const onOpenSettings = () => setIsSettingsOpen(true);
 
   if (!isAuthenticated) {
-    return <Auth onLoginSuccess={handleLoginSuccess} />;
+    if (publicView === 'landing') {
+      return <LandingPage onLoginClick={() => showAuth('login')} onSignupClick={() => showAuth('signup')} />;
+    } else {
+      return <Auth onLoginSuccess={handleLoginSuccess} initialView={initialAuthView} />;
+    }
   }
 
   const renderActiveView = () => {

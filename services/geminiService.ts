@@ -1,9 +1,8 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { Portfolio, MarketInfo, ChatMessage } from '../types';
 
 const getGeminiClient = () => {
-  const apiKey = localStorage.getItem('gemini-api-key');
+  const apiKey = localStorage.getItem('somtrade-api-key');
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY_MISSING");
   }
@@ -101,7 +100,7 @@ export const getAiChatbotResponse = async (history: ChatMessage[], newMessage: s
             parts: [{ text: msg.text }]
         }));
         
-        const systemInstruction = "You are GeminiEX's AI Trading Assistant, a helpful and knowledgeable expert on cryptocurrency, trading, and blockchain technology. Your tone is professional, encouraging, and clear. You are not a financial advisor and must not give direct financial advice. Instead of giving advice, provide factual information, explanations of concepts, and analysis of market data. Start your first response by introducing yourself.";
+        const systemInstruction = "You are SomTrade's AI Trading Assistant, a helpful and knowledgeable expert on cryptocurrency, trading, and blockchain technology. Your tone is professional, encouraging, and clear. You are not a financial advisor and must not give direct financial advice. Instead of giving advice, provide factual information, explanations of concepts, and analysis of market data. Start your first response by introducing yourself.";
 
         const contents = [...formattedHistory, { role: 'user', parts: [{ text: newMessage }] }];
 
