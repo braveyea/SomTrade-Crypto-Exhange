@@ -3,11 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getAiChatbotResponse } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
-const AiChatbot: React.FC = () => {
+interface AiChatbotProps {
+    onOpenSettings: () => void;
+}
+
+const AiChatbot: React.FC<AiChatbotProps> = ({ onOpenSettings }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,14 +26,19 @@ const AiChatbot: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setApiKeyError(false);
 
     try {
         const responseText = await getAiChatbotResponse(messages, input);
         const modelMessage: ChatMessage = { role: 'model', text: responseText };
         setMessages(prev => [...prev, modelMessage]);
     } catch(e) {
-        const errorMessage: ChatMessage = { role: 'model', text: "Sorry, I encountered an error. Please try again." };
-        setMessages(prev => [...prev, errorMessage]);
+        if (e instanceof Error && (e.message === "GEMINI_API_KEY_MISSING" || e.message === "GEMINI_API_KEY_INVALID")) {
+            setApiKeyError(true);
+        } else {
+            const errorMessage: ChatMessage = { role: 'model', text: "Sorry, I encountered an error. Please try again." };
+            setMessages(prev => [...prev, errorMessage]);
+        }
     } finally {
         setIsLoading(false);
     }
@@ -84,6 +94,16 @@ const AiChatbot: React.FC = () => {
             )}
             <div ref={messagesEndRef} />
         </div>
+
+        {/* API Key Error Banner */}
+        {apiKeyError && (
+            <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-yellow-100 dark:bg-yellow-900/50 text-center text-sm text-yellow-700 dark:text-yellow-300">
+                API Key required. 
+                <button onClick={onOpenSettings} className="font-bold underline ml-1 hover:text-yellow-600 dark:hover:text-yellow-200">
+                    Open Settings
+                </button>
+            </div>
+        )}
 
         {/* Input */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">

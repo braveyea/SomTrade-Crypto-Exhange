@@ -84,7 +84,6 @@ const App: React.FC = () => {
 
   const totalPortfolioValue = useMemo(() => {
     if (!markets.length) {
-        // Fix: Explicitly type accumulator and value in reduce to prevent 'unknown' type error.
         return Object.values(portfolio).reduce((acc: number, val: number) => acc + val, 0);
     }
 
@@ -110,6 +109,8 @@ const App: React.FC = () => {
 
     return liquidValue + stakedValue;
 }, [portfolio, stakedPortfolio, markets]);
+  
+  const onOpenSettings = () => setIsSettingsOpen(true);
 
   if (!isAuthenticated) {
     return <Auth onLoginSuccess={handleLoginSuccess} />;
@@ -125,6 +126,7 @@ const App: React.FC = () => {
             setSelectedCoinId={setSelectedCoinId}
             portfolio={portfolio}
             executeTrade={executeTrade}
+            onOpenSettings={onOpenSettings}
           />
         );
       case 'markets':
@@ -136,6 +138,7 @@ const App: React.FC = () => {
                   markets={markets}
                   totalPortfolioValue={totalPortfolioValue}
                   transactions={transactions}
+                  onOpenSettings={onOpenSettings}
                 />;
       case 'earn':
         return <EarnView 
@@ -157,7 +160,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans">
       <Header 
-        onSettingsClick={() => setIsSettingsOpen(true)} 
+        onSettingsClick={onOpenSettings} 
         onLogout={handleLogout} 
         totalPortfolioValue={totalPortfolioValue}
         activeView={activeView}
@@ -173,7 +176,7 @@ const App: React.FC = () => {
         currentTheme={theme}
         onThemeChange={setTheme}
       />
-      <AiChatbot />
+      <AiChatbot onOpenSettings={onOpenSettings} />
     </div>
   );
 };

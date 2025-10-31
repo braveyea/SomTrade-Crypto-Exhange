@@ -15,9 +15,10 @@ interface TradingViewProps {
   setSelectedCoinId: (coinId: string) => void;
   portfolio: Portfolio;
   executeTrade: (side: 'buy' | 'sell', amount: number, price: number, baseAsset: string, quoteAsset: string) => void;
+  onOpenSettings: () => void;
 }
 
-const TradingView: React.FC<TradingViewProps> = ({ markets, selectedCoinId, setSelectedCoinId, portfolio, executeTrade }) => {
+const TradingView: React.FC<TradingViewProps> = ({ markets, selectedCoinId, setSelectedCoinId, portfolio, executeTrade, onOpenSettings }) => {
   const { chartData, orderBook, latestPrice, error, loading } = useMarketData(selectedCoinId);
   const [tradeHistory, setTradeHistory] = useState<TradeTransaction[]>([]);
 
@@ -58,7 +59,7 @@ const TradingView: React.FC<TradingViewProps> = ({ markets, selectedCoinId, setS
       <div className="col-span-12 lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-4 shadow">
         <MarketSelector markets={markets} selectedCoinId={selectedCoinId} onSelectCoin={setSelectedCoinId} />
         <div className="mt-4">
-          <GeminiInfoPanel coinName={selectedMarket?.name || selectedCoinId} />
+          <GeminiInfoPanel coinName={selectedMarket?.name || selectedCoinId} onOpenSettings={onOpenSettings} />
         </div>
       </div>
 

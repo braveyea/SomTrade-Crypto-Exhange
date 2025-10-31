@@ -10,6 +10,7 @@ interface ProfileViewProps {
     markets: MarketInfo[];
     totalPortfolioValue: number;
     transactions: Transaction[];
+    onOpenSettings: () => void;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
@@ -196,7 +197,7 @@ const TransactionHistoryTable: React.FC<{ transactions: Transaction[] }> = ({ tr
     );
 };
 
-const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[] }> = ({ portfolio, markets }) => {
+const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[], onOpenSettings: () => void }> = ({ portfolio, markets, onOpenSettings }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [analysis, setAnalysis] = useState('');
     const [error, setError] = useState('');
@@ -209,12 +210,38 @@ const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[
             const result = await getAiPortfolioAnalysis(portfolio, markets);
             setAnalysis(result);
         } catch (e) {
-            if (e instanceof Error) setError(e.message);
-            else setError('An unknown error occurred');
+            if (e instanceof Error) {
+                if (e.message === "GEMINI_API_KEY_MISSING" || e.message === "GEMINI_API_KEY_INVALID") {
+                    setError("API_KEY_ERROR");
+                } else {
+                    setError(e.message);
+                }
+            } else {
+                setError('An unknown error occurred');
+            }
         } finally {
             setIsLoading(false);
         }
     };
+
+    const renderError = () => {
+        if (!error) return null;
+        if (error === "API_KEY_ERROR") {
+            return (
+                <div className="text-center text-sm text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-md mt-2">
+                    <p>Your Gemini API key is missing or invalid to get analysis.</p>
+                    <button 
+                        onClick={onOpenSettings} 
+                        className="font-bold underline hover:text-yellow-600 dark:hover:text-yellow-200 mt-1"
+                    >
+                        Add Key in Settings
+                    </button>
+                </div>
+            );
+        }
+        return <p className="text-red-500 text-sm mt-2">{error}</p>;
+    }
+
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -223,7 +250,7 @@ const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[
             <button onClick={handleAnalysis} disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-2 px-4 rounded transition-colors duration-300">
                 {isLoading ? 'Analyzing...' : 'Get AI Analysis'}
             </button>
-             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {renderError()}
             {analysis && (
                 <div className="mt-4 text-sm text-gray-700 dark:text-gray-300 bg-black bg-opacity-5 dark:bg-opacity-20 p-3 rounded max-h-60 overflow-y-auto">
                     <p className="whitespace-pre-wrap">{analysis}</p>
@@ -233,12 +260,12 @@ const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[
     )
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ portfolio, stakedPortfolio, markets, totalPortfolioValue, transactions }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ portfolio, stakedPortfolio, markets, totalPortfolioValue, transactions, onOpenSettings }) => {
     return (
         <div className="max-w-screen-2xl mx-auto grid grid-cols-12 gap-4">
             <div className="col-span-12 lg:col-span-3 space-y-4">
                 <ProfileCard />
-                 <AiPortfolioAnalysis portfolio={portfolio} markets={markets} />
+                 <AiPortfolioAnalysis portfolio={portfolio} markets={markets} onOpenSettings={onOpenSettings} />
             </div>
 
             <div className="col-span-12 lg:col-span-9 space-y-4">

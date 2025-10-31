@@ -1,8 +1,10 @@
+
 import React, { useState, useCallback } from 'react';
 import { getGeminiInsights } from '../services/geminiService';
 
 interface GeminiInfoPanelProps {
   coinName: string;
+  onOpenSettings: () => void;
 }
 
 const LoadingSpinner: React.FC = () => (
@@ -11,7 +13,7 @@ const LoadingSpinner: React.FC = () => (
     </div>
 );
 
-const GeminiInfoPanel: React.FC<GeminiInfoPanelProps> = ({ coinName }) => {
+const GeminiInfoPanel: React.FC<GeminiInfoPanelProps> = ({ coinName, onOpenSettings }) => {
   const [insights, setInsights] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +26,40 @@ const GeminiInfoPanel: React.FC<GeminiInfoPanelProps> = ({ coinName }) => {
       const result = await getGeminiInsights(coinName);
       setInsights(result);
     } catch (err) {
-      setError('Failed to fetch insights. Please try again.');
+      if (err instanceof Error) {
+        if (err.message === "GEMINI_API_KEY_MISSING" || err.message === "GEMINI_API_KEY_INVALID") {
+            setError("API_KEY_ERROR");
+        } else {
+            setError('Failed to fetch insights. Please try again.');
+        }
+      } else {
+        setError('An unknown error occurred.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [coinName]);
+  }, [coinName, onOpenSettings]);
+
+  const renderError = () => {
+    if (!error) return null;
+
+    if (error === "API_KEY_ERROR") {
+        return (
+            <div className="text-center text-sm text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-md mt-2">
+                <p>Your Gemini API key is missing or invalid.</p>
+                <button 
+                    onClick={onOpenSettings} 
+                    className="font-bold underline hover:text-yellow-600 dark:hover:text-yellow-200 mt-1"
+                >
+                    Add Key in Settings
+                </button>
+            </div>
+        );
+    }
+
+    return <p className="text-red-500 text-sm mt-2">{error}</p>;
+  }
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -46,7 +76,7 @@ const GeminiInfoPanel: React.FC<GeminiInfoPanelProps> = ({ coinName }) => {
       </button>
 
       {isLoading && <LoadingSpinner />}
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+      {renderError()}
       {insights && (
         <div className="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-black bg-opacity-5 dark:bg-opacity-20 p-3 rounded max-h-60 overflow-y-auto">
           <p className="whitespace-pre-wrap">{insights}</p>

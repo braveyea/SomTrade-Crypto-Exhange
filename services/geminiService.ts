@@ -3,9 +3,9 @@ import { GoogleGenAI } from "@google/genai";
 import { Portfolio, MarketInfo, ChatMessage } from '../types';
 
 const getGeminiClient = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = localStorage.getItem('gemini-api-key');
   if (!apiKey) {
-    throw new Error("Gemini API key not found. Please set the API_KEY environment variable.");
+    throw new Error("GEMINI_API_KEY_MISSING");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -30,6 +30,12 @@ Keep the entire response under 150 words.`;
   } catch (error) {
     console.error("Error fetching insights from Gemini API:", error);
     if (error instanceof Error) {
+        if (error.message === "GEMINI_API_KEY_MISSING") {
+             throw new Error("GEMINI_API_KEY_MISSING");
+        }
+        if (error.message.includes('API key not valid') || error.message.includes('permission')) {
+             throw new Error("GEMINI_API_KEY_INVALID");
+        }
         throw error;
     }
     throw new Error("Failed to communicate with the Gemini API.");
@@ -40,7 +46,6 @@ export const getAiPortfolioAnalysis = async (portfolio: Portfolio, markets: Mark
   try {
     const ai = getGeminiClient();
     
-    // Fix: Perform operations on numeric values before converting to strings for display.
     const portfolioDetails = Object.entries(portfolio)
       .map(([symbol, amount]) => {
         const market = markets.find(m => m.symbol.toLowerCase() === symbol.toLowerCase());
@@ -74,6 +79,12 @@ ${portfolioDetails}
   } catch (error) {
      console.error("Error fetching portfolio analysis from Gemini API:", error);
     if (error instanceof Error) {
+        if (error.message === "GEMINI_API_KEY_MISSING") {
+             throw new Error("GEMINI_API_KEY_MISSING");
+        }
+        if (error.message.includes('API key not valid') || error.message.includes('permission')) {
+             throw new Error("GEMINI_API_KEY_INVALID");
+        }
         throw error;
     }
     throw new Error("Failed to communicate with the Gemini API.");
@@ -105,8 +116,14 @@ export const getAiChatbotResponse = async (history: ChatMessage[], newMessage: s
     } catch (error) {
         console.error("Error fetching chatbot response from Gemini API:", error);
         if (error instanceof Error) {
-            return `Error: ${error.message}`;
+            if (error.message === "GEMINI_API_KEY_MISSING") {
+                throw new Error("GEMINI_API_KEY_MISSING");
+            }
+            if (error.message.includes('API key not valid') || error.message.includes('permission')) {
+                throw new Error("GEMINI_API_KEY_INVALID");
+            }
+            throw new Error(`Error: ${error.message}`);
         }
-        return "Sorry, I'm having trouble connecting to my brain right now. Please try again later.";
+        throw new Error("Sorry, I'm having trouble connecting to my brain right now. Please try again later.");
     }
 }
