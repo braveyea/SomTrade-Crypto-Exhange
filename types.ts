@@ -20,15 +20,45 @@ export interface OrderBook {
   asks: Order[];
 }
 
-export interface Trade {
-  id: string;
-  time: string;
-  price: number;
-  amount: number;
-  type: OrderType;
-  symbol: string; // e.g. 'BTC'
-  timestamp: number;
+export enum TransactionType {
+  DEPOSIT = 'DEPOSIT',
+  WITHDRAW = 'WITHDRAW',
+  TRADE = 'TRADE',
+  STAKE = 'STAKE',
+  UNSTAKE = 'UNSTAKE',
+  REWARD = 'REWARD',
 }
+
+export interface BaseTransaction {
+  id: string;
+  timestamp: number;
+  type: TransactionType;
+}
+
+export interface DepositWithdrawTransaction extends BaseTransaction {
+  type: TransactionType.DEPOSIT | TransactionType.WITHDRAW;
+  asset: string; // e.g. 'BTC'
+  amount: number;
+  status: 'Completed' | 'Pending' | 'Failed';
+}
+
+export interface TradeTransaction extends BaseTransaction {
+  type: TransactionType.TRADE;
+  baseAsset: string; // e.g. 'BTC'
+  quoteAsset: string; // e.g. 'USDT'
+  side: OrderType;
+  amount: number;
+  price: number;
+}
+
+export interface StakingTransaction extends BaseTransaction {
+  type: TransactionType.STAKE | TransactionType.UNSTAKE | TransactionType.REWARD;
+  asset: string; // e.g. 'ETH'
+  amount: number;
+}
+
+export type Transaction = DepositWithdrawTransaction | TradeTransaction | StakingTransaction;
+
 
 export interface MarketInfo {
   id: string;
@@ -47,4 +77,35 @@ export interface MarketInfo {
 
 export interface Portfolio {
   [assetSymbol: string]: number;
+}
+
+export interface StakingPortfolio {
+  [assetSymbol: string]: {
+    amount: number;
+    rewards: number;
+  };
+}
+
+export interface StakingPool {
+    id: string;
+    asset: string;
+    symbol: string;
+    image: string;
+    apy: number;
+    lockupPeriod: number; // in days
+    totalStaked: number;
+}
+
+export interface LeaderboardUser {
+    rank: number;
+    name: string;
+    avatar: string;
+    dailyPnl: number;
+    monthlyPnl: number;
+    totalVolume: number;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
 }

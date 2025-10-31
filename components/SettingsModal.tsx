@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -13,6 +14,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
     tradeConfirmations: true,
     marketNews: false,
   });
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const savedKey = localStorage.getItem('gemini-api-key') || '';
+      setApiKey(savedKey);
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -21,6 +30,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setNotifications(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleSaveAndClose = () => {
+    localStorage.setItem('gemini-api-key', apiKey);
+    onClose();
   };
 
   return (
@@ -70,6 +84,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
             </button>
           </div>
         </div>
+        
+        {/* API Key Settings */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Gemini API Key</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Your API key is stored locally in your browser and is required for AI Insights.
+          </p>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter your API key"
+            className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+            aria-label="Gemini API Key"
+          />
+        </div>
 
         {/* Notification Settings */}
         <div className="mb-6">
@@ -94,10 +124,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentT
         </div>
 
         <button
-          onClick={onClose}
+          onClick={handleSaveAndClose}
           className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors"
         >
-          Done
+          Save & Close
         </button>
       </div>
     </div>

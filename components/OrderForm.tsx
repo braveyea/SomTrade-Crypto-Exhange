@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Portfolio, MarketInfo } from '../types';
 
+type OrderTypeOption = 'limit' | 'market' | 'stop-limit';
+
 interface OrderFormProps {
     latestPrice: number;
     portfolio: Portfolio;
@@ -10,9 +12,10 @@ interface OrderFormProps {
 }
 
 const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedMarket, onPlaceOrder }) => {
-  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
+  const [orderType, setOrderType] = useState<OrderTypeOption>('limit');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState('');
+  const [stopPrice, setStopPrice] = useState('');
   const [amount, setAmount] = useState('');
   const [total, setTotal] = useState('');
 
@@ -24,7 +27,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedM
 
   useEffect(() => {
     const priceStr = latestPrice > 0 ? latestPrice.toString() : '';
-    if (orderType === 'limit') {
+    if (orderType === 'limit' || orderType === 'stop-limit') {
       setPrice(priceStr);
     } else {
       setPrice(''); // Market orders don't need a price input
@@ -45,6 +48,16 @@ const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedM
 
 
   const handlePlaceOrder = () => {
+    // Mocking stop-limit logic for frontend demonstration
+    if (orderType === 'stop-limit') {
+        const stopPriceValue = parseFloat(stopPrice);
+        if (isNaN(stopPriceValue) || stopPriceValue <= 0) {
+            alert('Please enter a valid stop price.');
+            return;
+        }
+        alert(`Stop-limit order placed: ${side} ${amount} ${baseAsset.toUpperCase()} at price ${price} when market reaches ${stopPrice}. (This is a mock execution)`);
+    }
+    
     const orderPrice = orderType === 'market' ? latestPrice : parseFloat(price);
     const orderAmount = parseFloat(amount);
 
@@ -60,7 +73,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedM
 
     onPlaceOrder(side, orderAmount, orderPrice, selectedMarket.symbol.toLowerCase(), 'usdt');
     
-    // Reset form
     setAmount('');
     setTotal('');
   }
@@ -86,6 +98,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedM
         <div className="flex space-x-2">
             <button onClick={() => setOrderType('limit')} className={`py-1 px-3 rounded transition-colors ${orderType === 'limit' ? 'bg-gray-300 dark:bg-gray-600' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>Limit</button>
             <button onClick={() => setOrderType('market')} className={`py-1 px-3 rounded transition-colors ${orderType === 'market' ? 'bg-gray-300 dark:bg-gray-600' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>Market</button>
+            <button onClick={() => setOrderType('stop-limit')} className={`py-1 px-3 rounded transition-colors ${orderType === 'stop-limit' ? 'bg-gray-300 dark:bg-gray-600' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>Stop-Limit</button>
         </div>
         <div className="text-right">
             <div>Avbl: {side === 'buy' ? `${quoteBalance.toFixed(2)} ${quoteAsset.toUpperCase()}` : `${baseBalance.toFixed(4)} ${baseAsset.toUpperCase()}`}</div>
@@ -93,9 +106,21 @@ const OrderForm: React.FC<OrderFormProps> = ({ latestPrice, portfolio, selectedM
       </div>
 
       <div className="space-y-4">
-        {orderType === 'limit' && (
+        {orderType === 'stop-limit' && (
+            <div className="relative">
+                <label className="text-xs text-gray-500 dark:text-gray-400">Stop Price</label>
+                <input 
+                type="number"
+                value={stopPrice}
+                onChange={(e) => setStopPrice(e.target.value)}
+                className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <span className="absolute right-3 top-7 text-gray-500 dark:text-gray-400 text-sm">USDT</span>
+            </div>
+        )}
+        {(orderType === 'limit' || orderType === 'stop-limit') && (
           <div className="relative">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Price</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400">Limit Price</label>
             <input 
               type="number"
               value={price}

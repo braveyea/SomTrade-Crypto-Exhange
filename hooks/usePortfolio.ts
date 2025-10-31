@@ -1,9 +1,19 @@
 
 import { useState, useEffect } from 'react';
-import { Portfolio, Trade, OrderType } from '../types';
+import { 
+  Portfolio, 
+  StakingPortfolio, 
+  Transaction, 
+  OrderType, 
+  TransactionType, 
+  DepositWithdrawTransaction, 
+  TradeTransaction, 
+  StakingTransaction 
+} from '../types';
 
 const PORTFOLIO_STORAGE_KEY = 'gemini-ex-portfolio';
-const TRADE_HISTORY_STORAGE_KEY = 'gemini-ex-trade-history';
+const STAKED_PORTFOLIO_STORAGE_KEY = 'gemini-ex-staked-portfolio';
+const TRANSACTION_HISTORY_STORAGE_KEY = 'gemini-ex-transaction-history';
 
 const initialPortfolio: Portfolio = {
   usdt: 10000.00,
@@ -17,90 +27,136 @@ const initialPortfolio: Portfolio = {
 const usePortfolio = () => {
   const [portfolio, setPortfolio] = useState<Portfolio>(() => {
     try {
-      const storedPortfolio = localStorage.getItem(PORTFOLIO_STORAGE_KEY);
-      if (storedPortfolio) {
-        return JSON.parse(storedPortfolio);
-      }
+      const stored = localStorage.getItem(PORTFOLIO_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : initialPortfolio;
     } catch (error) {
       console.error("Error parsing portfolio from localStorage", error);
+      return initialPortfolio;
     }
-    return initialPortfolio;
   });
 
-  const [tradeHistory, setTradeHistory] = useState<Trade[]>(() => {
-    try {
-        const storedHistory = localStorage.getItem(TRADE_HISTORY_STORAGE_KEY);
-        if(storedHistory) {
-            return JSON.parse(storedHistory);
-        }
+  const [stakedPortfolio, setStakedPortfolio] = useState<StakingPortfolio>(() => {
+     try {
+      const stored = localStorage.getItem(STAKED_PORTFOLIO_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
     } catch (error) {
-        console.error("Error parsing trade history from localStorage", error);
+      console.error("Error parsing staked portfolio from localStorage", error);
+      return {};
     }
-    return [];
+  });
+
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+        const stored = localStorage.getItem(TRANSACTION_HISTORY_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        console.error("Error parsing transaction history from localStorage", error);
+        return [];
+    }
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(portfolio));
-    } catch (error) {
-      console.error("Error saving portfolio to localStorage", error);
-    }
+    localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(portfolio));
   }, [portfolio]);
 
   useEffect(() => {
-    try {
-        localStorage.setItem(TRADE_HISTORY_STORAGE_KEY, JSON.stringify(tradeHistory));
-    } catch (error) {
-        console.error("Error saving trade history to localStorage", error);
-    }
-  }, [tradeHistory]);
+    localStorage.setItem(STAKED_PORTFOLIO_STORAGE_KEY, JSON.stringify(stakedPortfolio));
+  }, [stakedPortfolio]);
+
+  useEffect(() => {
+    localStorage.setItem(TRANSACTION_HISTORY_STORAGE_KEY, JSON.stringify(transactions));
+  }, [transactions]);
+
+  // Fix: Use an explicit union of Omit types to help TypeScript correctly discriminate the transaction type.
+  const addTransaction = (transaction: 
+    | Omit<DepositWithdrawTransaction, 'id' | 'timestamp'>
+    | Omit<TradeTransaction, 'id' | 'timestamp'>
+    | Omit<StakingTransaction, 'id' | 'timestamp'>
+  ) => {
+    const newTransaction = {
+      ...transaction,
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      timestamp: Date.now()
+    } as Transaction;
+    setTransactions(prev => [newTransaction, ...prev]);
+  };
 
   const executeTrade = (
     side: 'buy' | 'sell',
     amount: number,
     price: number,
-    baseAsset: string, // e.g. 'btc'
-    quoteAsset: string // e.g. 'usdt'
+    baseAsset: string,
+    quoteAsset: string
   ) => {
-    const totalCost = amount * price;
-
-    setPortfolio(prevPortfolio => {
-      const newPortfolio = { ...prevPortfolio };
-
+    setPortfolio(prev => {
+      const newPortfolio = { ...prev };
+      const totalCost = amount * price;
       const baseBalance = newPortfolio[baseAsset] || 0;
       const quoteBalance = newPortfolio[quoteAsset] || 0;
 
       if (side === 'buy') {
-        if (quoteBalance < totalCost) {
-          throw new Error('Insufficient USDT balance.');
-        }
+        if (quoteBalance < totalCost) throw new Error('Insufficient USDT balance.');
         newPortfolio[quoteAsset] = quoteBalance - totalCost;
         newPortfolio[baseAsset] = baseBalance + amount;
-      } else { // sell
-        if (baseBalance < amount) {
-          throw new Error(`Insufficient ${baseAsset.toUpperCase()} balance.`);
-        }
+      } else {
+        if (baseBalance < amount) throw new Error(`Insufficient ${baseAsset.toUpperCase()} balance.`);
         newPortfolio[baseAsset] = baseBalance - amount;
         newPortfolio[quoteAsset] = quoteBalance + totalCost;
       }
       return newPortfolio;
     });
 
-    const timestamp = Date.now();
-    const newTrade: Trade = {
-        id: timestamp.toString(),
-        timestamp,
-        time: new Date(timestamp).toLocaleTimeString(),
-        price,
+    addTransaction({
+        type: TransactionType.TRADE,
+        baseAsset,
+        quoteAsset,
+        side: side === 'buy' ? OrderType.BUY : OrderType.SELL,
         amount,
-        type: side === 'buy' ? OrderType.BUY : OrderType.SELL,
-        symbol: baseAsset.toUpperCase(),
-    };
+        price,
+    });
+  };
+  
+  const stake = (asset: string, amount: number) => {
+    setPortfolio(prev => {
+        const newPortfolio = { ...prev };
+        const balance = newPortfolio[asset] || 0;
+        if (balance < amount) throw new Error(`Insufficient ${asset.toUpperCase()} to stake.`);
+        newPortfolio[asset] = balance - amount;
+        return newPortfolio;
+    });
 
-    setTradeHistory(prevHistory => [newTrade, ...prevHistory]);
+    setStakedPortfolio(prev => {
+        const newStaked = { ...prev };
+        const currentStaked = newStaked[asset]?.amount || 0;
+        const currentRewards = newStaked[asset]?.rewards || 0;
+        newStaked[asset] = { amount: currentStaked + amount, rewards: currentRewards };
+        return newStaked;
+    });
+    
+    addTransaction({ type: TransactionType.STAKE, asset, amount });
+  };
+  
+  const unstake = (asset: string, amount: number) => {
+    setStakedPortfolio(prev => {
+        const newStaked = { ...prev };
+        const stakedAmount = newStaked[asset]?.amount || 0;
+        if (stakedAmount < amount) throw new Error(`Insufficient staked ${asset.toUpperCase()} to unstake.`);
+        newStaked[asset].amount = stakedAmount - amount;
+        return newStaked;
+    });
+
+    setPortfolio(prev => {
+        const newPortfolio = { ...prev };
+        const balance = newPortfolio[asset] || 0;
+        newPortfolio[asset] = balance + amount;
+        return newPortfolio;
+    });
+
+    addTransaction({ type: TransactionType.UNSTAKE, asset, amount });
   };
 
-  return { portfolio, executeTrade, tradeHistory };
+
+  return { portfolio, stakedPortfolio, executeTrade, transactions, stake, unstake };
 };
 
 export default usePortfolio;

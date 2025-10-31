@@ -1,19 +1,20 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AppView } from '../App';
 
 interface HeaderProps {
   onSettingsClick: () => void;
   onLogout: () => void;
   totalPortfolioValue: number;
-  activeView: 'trade' | 'markets' | 'profile';
-  onNavigate: (view: 'trade' | 'markets' | 'profile') => void;
+  activeView: AppView;
+  onNavigate: (view: AppView) => void;
 }
 
 const NavLink: React.FC<{ children: React.ReactNode; isActive?: boolean; onClick?: () => void; disabled?: boolean; }> = ({ children, isActive, onClick, disabled }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left ${
       isActive
         ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
@@ -24,6 +25,19 @@ const NavLink: React.FC<{ children: React.ReactNode; isActive?: boolean; onClick
 );
 
 const Header: React.FC<HeaderProps> = ({ onSettingsClick, onLogout, totalPortfolioValue, activeView, onNavigate }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-screen-2xl mx-auto px-2 sm:px-6 lg:px-8">
@@ -40,7 +54,22 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, onLogout, totalPortfol
                 <NavLink isActive={activeView === 'trade'} onClick={() => onNavigate('trade')}>Trade</NavLink>
                 <NavLink isActive={activeView === 'markets'} onClick={() => onNavigate('markets')}>Markets</NavLink>
                 <NavLink isActive={activeView === 'profile'} onClick={() => onNavigate('profile')}>Profile</NavLink>
-                <NavLink disabled>API</NavLink>
+                <div className="relative" ref={dropdownRef}>
+                  <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 flex items-center">
+                    More
+                    <svg className={`w-4 h-4 ml-1 transition-transform ${isDropdownOpen ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                  {isDropdownOpen && (
+                    <div className="absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
+                      <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                        <NavLink isActive={activeView === 'earn'} onClick={() => { onNavigate('earn'); setIsDropdownOpen(false); }}>Earn</NavLink>
+                        <NavLink isActive={activeView === 'community'} onClick={() => { onNavigate('community'); setIsDropdownOpen(false); }}>Community</NavLink>
+                        <NavLink isActive={activeView === 'security'} onClick={() => { onNavigate('security'); setIsDropdownOpen(false); }}>Security</NavLink>
+                        <NavLink disabled>API</NavLink>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

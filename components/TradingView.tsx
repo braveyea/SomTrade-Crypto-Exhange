@@ -7,7 +7,7 @@ import OrderForm from './OrderForm';
 import MarketSelector from './MarketSelector';
 import useMarketData from '../hooks/useMarketData';
 import GeminiInfoPanel from './GeminiInfoPanel';
-import { MarketInfo, OrderType, Trade, Portfolio } from '../types';
+import { MarketInfo, OrderType, Portfolio, TradeTransaction, TransactionType } from '../types';
 
 interface TradingViewProps {
   markets: MarketInfo[];
@@ -19,29 +19,26 @@ interface TradingViewProps {
 
 const TradingView: React.FC<TradingViewProps> = ({ markets, selectedCoinId, setSelectedCoinId, portfolio, executeTrade }) => {
   const { chartData, orderBook, latestPrice, error, loading } = useMarketData(selectedCoinId);
-  const [tradeHistory, setTradeHistory] = useState<Trade[]>([]);
+  const [tradeHistory, setTradeHistory] = useState<TradeTransaction[]>([]);
 
   const selectedMarket = markets.find(m => m.id === selectedCoinId);
 
   const handleNewTrade = (side: 'buy' | 'sell', amount: number, price: number, baseAsset: string, quoteAsset: string): void => {
     try {
-      // Execute the trade against the portfolio
       executeTrade(side, amount, price, baseAsset, quoteAsset);
 
-      // Create a new trade record
-      // FIX: Add missing 'symbol' and 'timestamp' properties to conform to the 'Trade' type.
       const timestamp = Date.now();
-      const newTrade: Trade = {
+      const newTrade: TradeTransaction = {
         id: timestamp.toString(),
-        time: new Date(timestamp).toLocaleTimeString(),
-        price,
-        amount,
-        type: side === 'buy' ? OrderType.BUY : OrderType.SELL,
-        symbol: baseAsset.toUpperCase(),
         timestamp,
+        type: TransactionType.TRADE,
+        baseAsset: baseAsset.toLowerCase(),
+        quoteAsset: quoteAsset.toLowerCase(),
+        side: side === 'buy' ? OrderType.BUY : OrderType.SELL,
+        amount,
+        price,
       };
 
-      // Update the trade history
       setTradeHistory(prev => [newTrade, ...prev].slice(0, 50));
       alert('Trade executed successfully!');
 

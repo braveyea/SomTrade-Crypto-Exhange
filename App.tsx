@@ -6,13 +6,19 @@ import MarketsView from './components/MarketsView';
 import ProfileView from './components/ProfileView';
 import SettingsModal from './components/SettingsModal';
 import Auth from './components/Auth';
+import EarnView from './components/EarnView';
+import CommunityView from './components/CommunityView';
+import SecurityView from './components/SecurityView';
+import AiChatbot from './components/AiChatbot';
 import { DEFAULT_COIN_ID, INITIAL_COIN_IDS } from './constants';
 import { MarketInfo } from './types';
 import { fetchMarkets } from './services/coingeckoService';
 import usePortfolio from './hooks/usePortfolio';
 
+export type AppView = 'trade' | 'markets' | 'profile' | 'earn' | 'community' | 'security';
+
 const App: React.FC = () => {
-  const { portfolio, executeTrade, tradeHistory } = usePortfolio();
+  const { portfolio, executeTrade, transactions, stake, unstake, stakedPortfolio } = usePortfolio();
   const [selectedCoinId, setSelectedCoinId] = useState<string>(DEFAULT_COIN_ID);
   const [markets, setMarkets] = useState<MarketInfo[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -22,7 +28,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('userToken'));
-  const [activeView, setActiveView] = useState<'trade' | 'markets' | 'profile'>('trade');
+  const [activeView, setActiveView] = useState<AppView>('trade');
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -61,8 +67,12 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('userToken');
-    localStorage.removeItem('gemini-ex-portfolio'); // Also reset portfolio on logout
-    localStorage.removeItem('gemini-ex-trade-history'); // Reset trade history
+    // Clear all persisted data on logout for a clean slate
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('gemini-ex-')) {
+            localStorage.removeItem(key);
+        }
+    });
     setIsAuthenticated(false);
     setActiveView('trade');
   };
@@ -74,11 +84,11 @@ const App: React.FC = () => {
 
   const totalPortfolioValue = useMemo(() => {
     if (!markets.length) {
-        // Fallback to USDT if markets are not loaded yet
-        return portfolio.usdt || 0;
+        // Fix: Explicitly type accumulator and value in reduce to prevent 'unknown' type error.
+        return Object.values(portfolio).reduce((acc: number, val: number) => acc + val, 0);
     }
 
-    const total = Object.keys(portfolio).reduce((acc, assetSymbol) => {
+    const liquidValue = Object.keys(portfolio).reduce((acc, assetSymbol) => {
         if (assetSymbol.toLowerCase() === 'usdt') {
             return acc + (portfolio.usdt || 0);
         }
@@ -89,8 +99,17 @@ const App: React.FC = () => {
         return acc;
     }, 0);
 
-    return total;
-}, [portfolio, markets]);
+    const stakedValue = Object.keys(stakedPortfolio).reduce((acc, assetSymbol) => {
+        const market = markets.find(m => m.symbol.toLowerCase() === assetSymbol.toLowerCase());
+        if(market) {
+            const totalStakedAmount = (stakedPortfolio[assetSymbol]?.amount || 0) + (stakedPortfolio[assetSymbol]?.rewards || 0);
+            return acc + (totalStakedAmount * market.current_price);
+        }
+        return acc;
+    }, 0);
+
+    return liquidValue + stakedValue;
+}, [portfolio, stakedPortfolio, markets]);
 
   if (!isAuthenticated) {
     return <Auth onLoginSuccess={handleLoginSuccess} />;
@@ -113,10 +132,23 @@ const App: React.FC = () => {
       case 'profile':
         return <ProfileView 
                   portfolio={portfolio}
+                  stakedPortfolio={stakedPortfolio}
                   markets={markets}
                   totalPortfolioValue={totalPortfolioValue}
-                  tradeHistory={tradeHistory}
+                  transactions={transactions}
                 />;
+      case 'earn':
+        return <EarnView 
+                  portfolio={portfolio} 
+                  stakedPortfolio={stakedPortfolio} 
+                  markets={markets}
+                  onStake={stake}
+                  onUnstake={unstake}
+                />;
+      case 'community':
+        return <CommunityView />;
+      case 'security':
+        return <SecurityView />;
       default:
         return null;
     }
@@ -141,6 +173,7 @@ const App: React.FC = () => {
         currentTheme={theme}
         onThemeChange={setTheme}
       />
+      <AiChatbot />
     </div>
   );
 };

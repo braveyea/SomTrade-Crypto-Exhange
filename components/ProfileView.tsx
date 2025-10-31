@@ -1,13 +1,15 @@
 
-import React from 'react';
-import { Portfolio, MarketInfo, Trade, OrderType } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { Portfolio, MarketInfo, Transaction, OrderType, TransactionType, StakingPortfolio, TradeTransaction, DepositWithdrawTransaction, StakingTransaction } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { getAiPortfolioAnalysis } from '../services/geminiService';
 
 interface ProfileViewProps {
     portfolio: Portfolio;
+    stakedPortfolio: StakingPortfolio;
     markets: MarketInfo[];
     totalPortfolioValue: number;
-    tradeHistory: Trade[];
+    transactions: Transaction[];
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
@@ -18,44 +20,59 @@ const ProfileCard: React.FC = () => (
             U
         </div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">User_Trader</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">UID: 13378008</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Joined: 2024-01-01</p>
+        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+            <span>UID: 13378008</span>
+            <span className="mx-2">|</span>
+            <span className="flex items-center">
+                KYC: 
+                <span className="ml-1.5 text-green-500 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
+                    Verified
+                </span>
+            </span>
+        </div>
     </div>
 );
 
-const Achievements: React.FC<{ portfolio: Portfolio; tradeHistory: Trade[] }> = ({ portfolio, tradeHistory }) => {
-    const achievements = [
-        { name: 'First Trade', earned: tradeHistory.length > 0, icon: '🥇' },
-        { name: 'Diversified', earned: Object.keys(portfolio).length > 3, icon: '🎨' },
-        { name: 'Bitcoin Hodler', earned: (portfolio.btc || 0) > 0, icon: '₿' },
-        { name: 'Ethereum Enthusiast', earned: (portfolio.eth || 0) > 0, icon: '♦️' },
-        { name: 'Whale Watcher', earned: tradeHistory.some(t => t.price * t.amount > 10000), icon: '🐳' },
-    ];
+const PortfolioHistoryChart: React.FC<{totalValue: number}> = ({ totalValue }) => {
+    const data = useMemo(() => {
+        const mockData = [];
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const randomFactor = 1 + (Math.random() - 0.5) * 0.1; // Fluctuate by +/- 10%
+            mockData.push({
+                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                value: totalValue * (1 - (i/30)*0.2) * randomFactor, // Simulate growth over 30 days
+            });
+        }
+        return mockData;
+    }, [totalValue]);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Achievements</h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
-                {achievements.map(ach => (
-                    <div key={ach.name} className={`p-2 rounded-lg ${ach.earned ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-700 opacity-50'}`}>
-                        <div className="text-3xl">{ach.icon}</div>
-                        <p className={`text-xs mt-1 font-medium ${ach.earned ? 'text-green-800 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'}`}>{ach.name}</p>
-                    </div>
-                ))}
-            </div>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-96">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Portfolio History (30d)</h3>
+             <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <ResponsiveContainer width="100%" height="80%">
+                <AreaChart data={data}>
+                    <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" tick={{ fill: '#6B7280' }} fontSize={12} />
+                    <YAxis orientation="right" tick={{ fill: '#6B7280' }} fontSize={12} tickFormatter={(value) => `$${(Number(value)/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(value: number) => `$${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} />
+                    <Area type="monotone" dataKey="value" stroke="#10B981" fillOpacity={1} fill="url(#colorValue)" />
+                </AreaChart>
+            </ResponsiveContainer>
         </div>
-    );
+    )
 };
 
-const PortfolioOverview: React.FC<{ totalValue: number }> = ({ totalValue }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Portfolio Value</h3>
-        <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </p>
-        <p className="text-sm text-green-500 mt-1">+2.5% (24h)</p>
-    </div>
-);
 
 const AssetDistribution: React.FC<{ portfolio: Portfolio; markets: MarketInfo[] }> = ({ portfolio, markets }) => {
     const data = Object.entries(portfolio)
@@ -71,18 +88,7 @@ const AssetDistribution: React.FC<{ portfolio: Portfolio; markets: MarketInfo[] 
             return { name: symbol.toUpperCase(), value };
         })
         .filter(item => item && item.value > 0.01)
-        // FIX: Replaced subtraction-based sort with a comparison-based one to avoid TypeScript arithmetic operation errors.
-        .sort((a, b) => {
-            const valueA = a?.value ?? 0;
-            const valueB = b?.value ?? 0;
-            if (valueA < valueB) {
-                return 1;
-            }
-            if (valueA > valueB) {
-                return -1;
-            }
-            return 0;
-        });
+        .sort((a, b) => (b?.value ?? 0) - (a?.value ?? 0));
 
     if (!data || data.length === 0) {
         return <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex items-center justify-center text-gray-500">No assets to display.</div>;
@@ -116,55 +122,131 @@ const AssetDistribution: React.FC<{ portfolio: Portfolio; markets: MarketInfo[] 
     );
 };
 
-const TradeHistoryTable: React.FC<{ trades: Trade[] }> = ({ trades }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Trade History</h3>
-        <div className="overflow-x-auto max-h-96">
-            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">Date</th>
-                        <th scope="col" className="px-6 py-3">Pair</th>
-                        <th scope="col" className="px-6 py-3">Type</th>
-                        <th scope="col" className="px-6 py-3">Price</th>
-                        <th scope="col" className="px-6 py-3">Amount</th>
-                        <th scope="col" className="px-6 py-3">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {trades.map(trade => (
-                        <tr key={trade.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td className="px-6 py-4">{new Date(trade.timestamp).toLocaleDateString()}</td>
-                            <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{trade.symbol}/USDT</td>
-                            <td className={`px-6 py-4 font-semibold ${trade.type === OrderType.BUY ? 'text-green-500' : 'text-red-500'}`}>{trade.type}</td>
-                            <td className="px-6 py-4">${trade.price.toLocaleString()}</td>
-                            <td className="px-6 py-4">{trade.amount.toFixed(4)} {trade.symbol}</td>
-                            <td className="px-6 py-4">${(trade.price * trade.amount).toFixed(2)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            {trades.length === 0 && <p className="text-center py-8 text-gray-500">No trade history found.</p>}
-        </div>
-    </div>
-);
+const TransactionHistoryTable: React.FC<{ transactions: Transaction[] }> = ({ transactions }) => {
+    const renderRow = (tx: Transaction) => {
+        switch (tx.type) {
+            case TransactionType.TRADE:
+                const trade = tx as TradeTransaction;
+                return (
+                    <>
+                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{trade.baseAsset.toUpperCase()}/USDT</td>
+                        <td className={`px-6 py-4 font-semibold ${trade.side === OrderType.BUY ? 'text-green-500' : 'text-red-500'}`}>{trade.side}</td>
+                        <td className="px-6 py-4">${trade.price.toLocaleString()}</td>
+                        <td className="px-6 py-4">{trade.amount.toFixed(4)} {trade.baseAsset.toUpperCase()}</td>
+                        <td className="px-6 py-4">${(trade.price * trade.amount).toFixed(2)}</td>
+                    </>
+                );
+            case TransactionType.DEPOSIT:
+            case TransactionType.WITHDRAW:
+                 const deposit = tx as DepositWithdrawTransaction;
+                 return (
+                    <>
+                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{deposit.asset.toUpperCase()}</td>
+                        <td className={`px-6 py-4 font-semibold ${tx.type === TransactionType.DEPOSIT ? 'text-blue-500' : 'text-yellow-500'}`}>{tx.type}</td>
+                        <td className="px-6 py-4">-</td>
+                        <td className="px-6 py-4">{deposit.amount.toFixed(4)} {deposit.asset.toUpperCase()}</td>
+                        <td className="px-6 py-4">{deposit.status}</td>
+                    </>
+                 );
+            case TransactionType.STAKE:
+            case TransactionType.UNSTAKE:
+            case TransactionType.REWARD:
+                const stake = tx as StakingTransaction;
+                 return (
+                    <>
+                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{stake.asset.toUpperCase()}</td>
+                        <td className={`px-6 py-4 font-semibold text-purple-500`}>{tx.type}</td>
+                        <td className="px-6 py-4">-</td>
+                        <td className="px-6 py-4">{stake.amount.toFixed(4)} {stake.asset.toUpperCase()}</td>
+                        <td className="px-6 py-4">Completed</td>
+                    </>
+                 );
+            default:
+                return <td colSpan={5}>Unknown transaction type</td>;
+        }
+    };
 
-const ProfileView: React.FC<ProfileViewProps> = ({ portfolio, markets, totalPortfolioValue, tradeHistory }) => {
+    return (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Transaction History</h3>
+            <div className="overflow-x-auto max-h-96">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">Date</th>
+                            <th scope="col" className="px-6 py-3">Asset/Pair</th>
+                            <th scope="col" className="px-6 py-3">Type</th>
+                            <th scope="col" className="px-6 py-3">Price</th>
+                            <th scope="col" className="px-6 py-3">Amount</th>
+                            <th scope="col" className="px-6 py-3">Status/Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {transactions.map(tx => (
+                            <tr key={tx.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td className="px-6 py-4">{new Date(tx.timestamp).toLocaleString()}</td>
+                                {renderRow(tx)}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {transactions.length === 0 && <p className="text-center py-8 text-gray-500">No transaction history found.</p>}
+            </div>
+        </div>
+    );
+};
+
+const AiPortfolioAnalysis: React.FC<{ portfolio: Portfolio, markets: MarketInfo[] }> = ({ portfolio, markets }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [analysis, setAnalysis] = useState('');
+    const [error, setError] = useState('');
+
+    const handleAnalysis = async () => {
+        setIsLoading(true);
+        setError('');
+        setAnalysis('');
+        try {
+            const result = await getAiPortfolioAnalysis(portfolio, markets);
+            setAnalysis(result);
+        } catch (e) {
+            if (e instanceof Error) setError(e.message);
+            else setError('An unknown error occurred');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">AI Portfolio Analysis</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Get personalized insights and suggestions on your portfolio allocation from our Gemini-powered AI.</p>
+            <button onClick={handleAnalysis} disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-2 px-4 rounded transition-colors duration-300">
+                {isLoading ? 'Analyzing...' : 'Get AI Analysis'}
+            </button>
+             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {analysis && (
+                <div className="mt-4 text-sm text-gray-700 dark:text-gray-300 bg-black bg-opacity-5 dark:bg-opacity-20 p-3 rounded max-h-60 overflow-y-auto">
+                    <p className="whitespace-pre-wrap">{analysis}</p>
+                </div>
+            )}
+        </div>
+    )
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ portfolio, stakedPortfolio, markets, totalPortfolioValue, transactions }) => {
     return (
         <div className="max-w-screen-2xl mx-auto grid grid-cols-12 gap-4">
-            {/* Left Column */}
             <div className="col-span-12 lg:col-span-3 space-y-4">
                 <ProfileCard />
-                <Achievements portfolio={portfolio} tradeHistory={tradeHistory} />
+                 <AiPortfolioAnalysis portfolio={portfolio} markets={markets} />
             </div>
 
-            {/* Right Column */}
             <div className="col-span-12 lg:col-span-9 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <PortfolioOverview totalValue={totalPortfolioValue} />
+                    <PortfolioHistoryChart totalValue={totalPortfolioValue} />
                     <AssetDistribution portfolio={portfolio} markets={markets} />
                 </div>
-                <TradeHistoryTable trades={tradeHistory} />
+                <TransactionHistoryTable transactions={transactions} />
             </div>
         </div>
     );

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ChartDataPoint, OrderBook, Trade, OrderType, Order } from '../types';
+import { ChartDataPoint, OrderBook, Order } from '../types';
 import { fetchChartData, fetchSimplePrice } from '../services/coingeckoService';
 
 const generateOrderBook = (price: number): OrderBook => {
